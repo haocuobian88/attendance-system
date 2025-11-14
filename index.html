@@ -116,17 +116,28 @@
             text-align: center;
             font-weight: bold;
             display: none;
+            white-space: pre-line;
+            line-height: 1.6;
         }
         
         .message.success {
             background: #d4edda;
             color: #155724;
+            border: 2px solid #c3e6cb;
             display: block;
         }
         
         .message.error {
             background: #f8d7da;
             color: #721c24;
+            border: 2px solid #f5c6cb;
+            display: block;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
             display: block;
         }
         
@@ -199,6 +210,16 @@
                 userLineId = profile.userId;
                 document.getElementById('lineId').textContent = profile.displayName || userLineId.substring(0, 10) + '...';
                 
+                // 嘗試載入上次儲存的姓名
+                try {
+                    const savedName = localStorage.getItem('employeeName');
+                    if (savedName) {
+                        document.getElementById('employeeName').value = savedName;
+                    }
+                } catch (e) {
+                    // localStorage 可能被禁用,忽略錯誤
+                }
+                
                 // 取得IP
                 await getIpAddress();
                 
@@ -249,16 +270,39 @@
             const employeeName = document.getElementById('employeeName').value.trim();
             const messageDiv = document.getElementById('message');
             
+            // 驗證姓名
             if (!employeeName) {
-                showMessage('請輸入姓名', 'error');
+                showMessage('❌ 請輸入姓名', 'error');
                 return;
             }
             
-            // 禁用按鈕
+            if (employeeName.length < 2) {
+                showMessage('❌ 姓名至少需要2個字元', 'error');
+                return;
+            }
+            
+            // 禁用按鈕並顯示處理中
             const buttons = document.querySelectorAll('button');
             buttons.forEach(btn => btn.disabled = true);
+            showMessage('⏳ 打卡處理中...', 'info');
             
             try {
+                // 檢查是否有設定 GAS_URL
+                if (GAS_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL') {
+                    showMessage('❌ 系統設定錯誤: 尚未設定 Google Apps Script URL', 'error');
+                    buttons.forEach(btn => btn.disabled = false);
+                    return;
+                }
+                
+                console.log('開始打卡請求...');
+                console.log('GAS_URL:', GAS_URL);
+                console.log('打卡資料:', {
+                    employeeName: employeeName,
+                    lineId: userLineId,
+                    punchType: type,
+                    ipAddress: userIp
+                });
+                
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     headers: {
@@ -269,24 +313,49 @@
                         lineId: userLineId,
                         punchType: type,
                         ipAddress: userIp
-                    })
+                    }),
+                    mode: 'cors'
                 });
+                
+                console.log('收到回應:', response.status, response.statusText);
+                
+                // 檢查 HTTP 狀態
+                if (!response.ok) {
+                    throw new Error(`HTTP錯誤! 狀態碼: ${response.status}`);
+                }
                 
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    let msg = result.message;
+                    let msg = `✅ ${type}打卡成功!`;
                     if (result.workHours) {
-                        msg += ` (本日工時: ${result.workHours}小時)`;
+                        msg += `\n📊 本日工時: ${result.workHours} 小時`;
                     }
                     showMessage(msg, 'success');
+                    
+                    // 成功後儲存姓名到 localStorage (方便下次使用)
+                    try {
+                        localStorage.setItem('employeeName', employeeName);
+                    } catch (e) {
+                        // localStorage 可能被禁用,忽略錯誤
+                    }
                 } else {
-                    showMessage('打卡失敗: ' + result.message, 'error');
+                    showMessage(`❌ 打卡失敗\n原因: ${result.message}`, 'error');
                 }
                 
             } catch (error) {
-                showMessage('打卡失敗,請檢查網路連線', 'error');
                 console.error('打卡錯誤:', error);
+                
+                // 根據錯誤類型顯示不同訊息
+                if (error.message.includes('Failed to fetch')) {
+                    showMessage('❌ 打卡失敗\n原因: 無法連線到伺服器\n請檢查網路連線或 Google Apps Script URL 是否正確', 'error');
+                } else if (error.message.includes('HTTP錯誤')) {
+                    showMessage(`❌ 打卡失敗\n原因: ${error.message}\n請檢查 Google Apps Script 部署設定`, 'error');
+                } else if (error.name === 'SyntaxError') {
+                    showMessage('❌ 打卡失敗\n原因: 伺服器回應格式錯誤\n請檢查 Google Apps Script 程式碼', 'error');
+                } else {
+                    showMessage(`❌ 打卡失敗\n原因: ${error.message}`, 'error');
+                }
             } finally {
                 // 重新啟用按鈕
                 buttons.forEach(btn => btn.disabled = false);
@@ -298,10 +367,14 @@
             const messageDiv = document.getElementById('message');
             messageDiv.textContent = text;
             messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+            
+            // 成功訊息3秒後自動隱藏,錯誤訊息5秒後隱藏
+            const hideDelay = type === 'success' ? 3000 : 5000;
             
             setTimeout(() => {
                 messageDiv.style.display = 'none';
-            }, 3000);
+            }, hideDelay);
         }
 
         // 啟動應用
