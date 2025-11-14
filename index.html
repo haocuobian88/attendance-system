@@ -196,7 +196,7 @@
         
         <div class="form-group">
             <label for="lineId">LINE ID</label>
-            <input type="text" id="lineId" placeholder="請輸入您的LINE ID" required readonly style="background-color: #f0f0f0;">
+            <input type="text" id="lineId" placeholder="請輸入您的LINE ID" required>
         </div>
         
         <div class="button-group">
@@ -217,8 +217,8 @@
     </div>
 
     <script>
-        // 🔴 重要！請將下面這行的網址替換成您的 Google Apps Script URL
-        const API_URL = 'https://script.google.com/macros/s/AKfycby8Oe9GqxQMntAx_SHY2gJH5V348fTp_XXlQkbXaPkXSx9AgwsmYLoqxGNfwWB0McnuXQ/exec';
+        // 請將此處替換為您的 Google Apps Script URL
+        const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
         
         // 更新時間顯示
         function updateTime() {
@@ -270,8 +270,12 @@
             const name = document.getElementById('name').value.trim();
             const lineId = document.getElementById('lineId').value.trim();
             
+            // 除錯：顯示取得的值
+            console.log('姓名:', name);
+            console.log('LINE ID:', lineId);
+            
             if (!name || !lineId) {
-                showMessage('請填寫所有欄位！', 'error');
+                showMessage('請填寫所有欄位！LINE ID: ' + (lineId || '未填寫'), 'error');
                 return;
             }
             
@@ -282,20 +286,27 @@
             try {
                 const ip = await getIP();
                 
+                const requestData = {
+                    name: name,
+                    lineId: lineId,
+                    type: type,
+                    ip: ip
+                };
+                
+                // 除錯：顯示要傳送的資料
+                console.log('傳送資料:', requestData);
+                console.log('API URL:', API_URL);
+                
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        name: name,
-                        lineId: lineId,
-                        type: type,
-                        ip: ip
-                    })
+                    body: JSON.stringify(requestData)
                 });
                 
                 const result = await response.json();
+                console.log('回應結果:', result);
                 
                 if (result.success) {
                     showMessage(result.message, 'success');
@@ -304,8 +315,8 @@
                 }
                 
             } catch (error) {
-                showMessage('打卡失敗，請檢查網路連線或聯絡系統管理員', 'error');
-                console.error('Error:', error);
+                showMessage('打卡失敗：' + error.message, 'error');
+                console.error('完整錯誤:', error);
             } finally {
                 document.querySelector('.loading').style.display = 'none';
                 document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
@@ -341,7 +352,7 @@
             }
         };
         
-        // 當員工填寫姓名後,保存到 localStorage
+        // 當員工填寫姓名後，保存到 localStorage
         document.getElementById('name').addEventListener('blur', function() {
             const lineId = document.getElementById('lineId').value.trim();
             const name = this.value.trim();
