@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>員工打卡系統</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,8 +13,8 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #e5e5e5;
+            font-family: 'Arial', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -24,115 +25,88 @@
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             max-width: 400px;
             width: 100%;
         }
         
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
+        h1 {
             color: #667eea;
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .time-display {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
             text-align: center;
             margin-bottom: 30px;
+            font-size: 28px;
         }
         
-        .time-display .date {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        
-        .time-display .time {
-            color: #333;
-            font-size: 32px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .form-group {
+        .info-box {
+            background: #f7f7ff;
+            border-radius: 10px;
+            padding: 20px;
             margin-bottom: 20px;
         }
         
-        .form-group label {
-            display: block;
-            color: #555;
+        .info-item {
+            margin-bottom: 10px;
             font-size: 14px;
-            margin-bottom: 8px;
-            font-weight: 600;
+            color: #555;
         }
         
-        .form-group input {
+        .info-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        input {
             width: 100%;
-            padding: 12px 15px;
+            padding: 15px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
             font-size: 16px;
+            margin-bottom: 20px;
             transition: border-color 0.3s;
         }
         
-        .form-group input:focus {
+        input:focus {
             outline: none;
             border-color: #667eea;
         }
         
         .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
         }
         
-        .btn {
+        button {
+            flex: 1;
             padding: 15px;
             border: none;
             border-radius: 10px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         
-        .btn:active {
-            transform: scale(0.98);
-        }
-        
-        .btn-checkin {
+        .btn-in {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
         
-        .btn-checkin:hover {
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-checkout {
+        .btn-out {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
         }
         
-        .btn-checkout:hover {
-            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
         
-        .btn:disabled {
-            background: #ccc;
+        button:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
-            box-shadow: none;
+            transform: none;
         }
         
         .message {
@@ -140,226 +114,198 @@
             padding: 15px;
             border-radius: 10px;
             text-align: center;
-            font-size: 14px;
+            font-weight: bold;
             display: none;
         }
         
         .message.success {
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
+            display: block;
         }
         
         .message.error {
             background: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            display: block;
         }
         
         .loading {
-            display: none;
             text-align: center;
-            margin-top: 20px;
-        }
-        
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            color: #667eea;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📋 員工打卡系統</h1>
+        <h1>📋 員工打卡系統</h1>
+        
+        <div id="loading" class="loading">
+            載入中...
         </div>
         
-        <div class="time-display">
-            <div class="date" id="currentDate"></div>
-            <div class="time" id="currentTime"></div>
+        <div id="mainContent" style="display: none;">
+            <div class="info-box">
+                <div class="info-item">
+                    <span class="info-label">LINE ID:</span>
+                    <span id="lineId">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">IP位址:</span>
+                    <span id="ipAddress">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">時間:</span>
+                    <span id="currentTime">-</span>
+                </div>
+            </div>
+            
+            <input type="text" id="employeeName" placeholder="請輸入您的姓名">
+            
+            <div class="button-group">
+                <button class="btn-in" onclick="punch('上班')">
+                    ⏰ 上班打卡
+                </button>
+                <button class="btn-out" onclick="punch('下班')">
+                    🏠 下班打卡
+                </button>
+            </div>
+            
+            <div id="message" class="message"></div>
         </div>
-        
-        <div class="form-group">
-            <label for="name">員工姓名</label>
-            <input type="text" id="name" placeholder="請輸入您的姓名" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="lineId">LINE ID</label>
-            <input type="text" id="lineId" placeholder="請輸入您的LINE ID" required>
-        </div>
-        
-        <div class="button-group">
-            <button class="btn btn-checkin" onclick="handleAttendance('checkin')">
-                ✓ 上班打卡
-            </button>
-            <button class="btn btn-checkout" onclick="handleAttendance('checkout')">
-                ✗ 下班打卡
-            </button>
-        </div>
-        
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <p style="margin-top: 10px; color: #666;">處理中...</p>
-        </div>
-        
-        <div class="message" id="message"></div>
     </div>
 
     <script>
-        // 請將此處替換為您的 Google Apps Script URL
-        const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+        // ⚠️ 請替換以下三個值
+        const LIFF_ID = 'YOUR_LIFF_ID';  // 從LINE Developers取得
+        const GAS_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL';  // 從Google Apps Script取得
         
-        // 更新時間顯示
-        function updateTime() {
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('zh-TW', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                weekday: 'long'
-            });
-            const timeStr = now.toLocaleTimeString('zh-TW', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-            
-            document.getElementById('currentDate').textContent = dateStr;
-            document.getElementById('currentTime').textContent = timeStr;
+        let userLineId = '';
+        let userIp = '';
+
+        // 初始化LIFF
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+                
+                // 取得用戶資訊
+                const profile = await liff.getProfile();
+                userLineId = profile.userId;
+                document.getElementById('lineId').textContent = profile.displayName || userLineId.substring(0, 10) + '...';
+                
+                // 取得IP
+                await getIpAddress();
+                
+                // 更新時間
+                updateTime();
+                setInterval(updateTime, 1000);
+                
+                // 顯示主要內容
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+            } catch (error) {
+                console.error('LIFF初始化失敗:', error);
+                document.getElementById('loading').textContent = '初始化失敗,請重新整理頁面';
+            }
         }
-        
-        setInterval(updateTime, 1000);
-        updateTime();
-        
-        // 獲取IP地址
-        async function getIP() {
+
+        // 取得IP位址
+        async function getIpAddress() {
             try {
                 const response = await fetch('https://api.ipify.org?format=json');
                 const data = await response.json();
-                return data.ip;
+                userIp = data.ip;
+                document.getElementById('ipAddress').textContent = userIp;
             } catch (error) {
-                return '無法取得IP';
+                userIp = '無法取得';
+                document.getElementById('ipAddress').textContent = userIp;
             }
         }
-        
-        // 顯示訊息
-        function showMessage(text, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = 'message ' + type;
-            messageEl.style.display = 'block';
-            
-            setTimeout(() => {
-                messageEl.style.display = 'none';
-            }, 5000);
+
+        // 更新時間
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('currentTime').textContent = timeString;
         }
-        
-        // 處理打卡
-        async function handleAttendance(type) {
-            const name = document.getElementById('name').value.trim();
-            const lineId = document.getElementById('lineId').value.trim();
+
+        // 打卡功能
+        async function punch(type) {
+            const employeeName = document.getElementById('employeeName').value.trim();
+            const messageDiv = document.getElementById('message');
             
-            // 除錯：顯示取得的值
-            console.log('姓名:', name);
-            console.log('LINE ID:', lineId);
-            
-            if (!name || !lineId) {
-                showMessage('請填寫所有欄位！LINE ID: ' + (lineId || '未填寫'), 'error');
+            if (!employeeName) {
+                showMessage('請輸入姓名', 'error');
                 return;
             }
             
-            // 顯示載入中
-            document.querySelector('.loading').style.display = 'block';
-            document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+            // 禁用按鈕
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
             
             try {
-                const ip = await getIP();
-                
-                const requestData = {
-                    name: name,
-                    lineId: lineId,
-                    type: type,
-                    ip: ip
-                };
-                
-                // 除錯：顯示要傳送的資料
-                console.log('傳送資料:', requestData);
-                console.log('API URL:', API_URL);
-                
-                const response = await fetch(API_URL, {
+                const response = await fetch(GAS_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(requestData)
+                    body: JSON.stringify({
+                        employeeName: employeeName,
+                        lineId: userLineId,
+                        punchType: type,
+                        ipAddress: userIp
+                    })
                 });
                 
                 const result = await response.json();
-                console.log('回應結果:', result);
                 
-                if (result.success) {
-                    showMessage(result.message, 'success');
+                if (result.status === 'success') {
+                    let msg = result.message;
+                    if (result.workHours) {
+                        msg += ` (本日工時: ${result.workHours}小時)`;
+                    }
+                    showMessage(msg, 'success');
                 } else {
-                    showMessage(result.message, 'error');
+                    showMessage('打卡失敗: ' + result.message, 'error');
                 }
                 
             } catch (error) {
-                showMessage('打卡失敗：' + error.message, 'error');
-                console.error('完整錯誤:', error);
+                showMessage('打卡失敗,請檢查網路連線', 'error');
+                console.error('打卡錯誤:', error);
             } finally {
-                document.querySelector('.loading').style.display = 'none';
-                document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
+                // 重新啟用按鈕
+                buttons.forEach(btn => btn.disabled = false);
             }
         }
-        
-        // 從 LINE LIFF 或 URL 參數獲取 LINE ID，姓名由員工自行填寫
-        window.onload = function() {
-            // 嘗試從 URL 參數獲取
-            const params = new URLSearchParams(window.location.search);
-            let lineId = params.get('lineId');
+
+        // 顯示訊息
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
             
-            // 如果沒有 LINE ID，顯示提示訊息
-            if (!lineId) {
-                // 可以嘗試從 localStorage 獲取（如果之前有保存）
-                lineId = localStorage.getItem('userLineId');
-                
-                if (!lineId) {
-                    showMessage('請透過LINE官方帳號開啟此頁面，或在網址後加上 ?lineId=您的LINE_ID', 'error');
-                }
-            }
-            
-            if (lineId) {
-                document.getElementById('lineId').value = lineId;
-                // 保存到 localStorage 供下次使用
-                localStorage.setItem('userLineId', lineId);
-                
-                // 嘗試從 localStorage 獲取之前保存的姓名
-                const savedName = localStorage.getItem('userName_' + lineId);
-                if (savedName) {
-                    document.getElementById('name').value = savedName;
-                }
-            }
-        };
-        
-        // 當員工填寫姓名後，保存到 localStorage
-        document.getElementById('name').addEventListener('blur', function() {
-            const lineId = document.getElementById('lineId').value.trim();
-            const name = this.value.trim();
-            if (lineId && name) {
-                localStorage.setItem('userName_' + lineId, name);
-            }
-        });
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 啟動應用
+        window.onload = initializeLiff;
     </script>
 </body>
 </html>
